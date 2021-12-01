@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-use std::vec;
+use std::{os::unix::prelude::MetadataExt, vec};
 
 use astarte_sdk::{builder::AstarteBuilder, types::AstarteType};
 use structopt::StructOpt;
@@ -50,13 +50,14 @@ async fn main() {
 
     let mut sdk_builder =
         AstarteBuilder::new(&realm, &device_id, &credentials_secret, &pairing_url);
-    sdk_builder
+    let mut device = sdk_builder
         .add_interface_files("./examples/interfaces")
+        .unwrap()
+        .build()
+        .await
         .unwrap();
 
-    sdk_builder.build().await.unwrap();
-
-    let mut device = sdk_builder.connect().await.unwrap();
+    device.connect().await.unwrap();
 
     let w = device.clone();
 

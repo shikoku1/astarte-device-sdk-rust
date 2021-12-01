@@ -1,7 +1,7 @@
 use log::debug;
 use openssl::error::ErrorStack;
 use pairing::PairingError;
-use rumqttc::{AsyncClient, ClientConfig, MqttOptions, Transport};
+use rumqttc::{ClientConfig, MqttOptions, Transport};
 use rustls::ServerCertVerifier;
 use rustls::{internal::pemfile, Certificate, PrivateKey};
 use std::collections::HashMap;
@@ -15,18 +15,18 @@ pub use interface::Interface;
 
 use crate::crypto::Bundle;
 use crate::database::AstarteDatabase;
-use crate::interface::{self, Ownership};
+use crate::interface::{self};
 use crate::interfaces::Interfaces;
 use crate::{pairing, AstarteSdk};
 
 /// Options for astarte builder
 #[derive(Debug, Clone)]
 pub struct BuildOptions {
-    private_key: PrivateKey,
-    csr: String,
-    certificate_pem: Vec<Certificate>,
-    broker_url: Url,
-    mqtt_opts: MqttOptions,
+    pub(crate) private_key: PrivateKey,
+    pub(crate) csr: String,
+    pub(crate) certificate_pem: Vec<Certificate>,
+    pub(crate) broker_url: Url,
+    pub(crate) mqtt_opts: MqttOptions,
 }
 
 /// Builder for Astarte client
@@ -213,38 +213,8 @@ impl AstarteBuilder {
         Ok(mqtt_opts)
     }
 
-    async fn subscribe(
-        &mut self,
-        client: &AsyncClient,
-        cn: &str,
-    ) -> Result<(), AstarteBuilderError> {
-        let ifaces = self
-            .interfaces
-            .clone()
-            .into_iter()
-            .filter(|i| i.1.get_ownership() == Ownership::Server);
-
-        client
-            .subscribe(
-                cn.to_owned() + "/control/consumer/properties",
-                rumqttc::QoS::ExactlyOnce,
-            )
-            .await?;
-
-        for i in ifaces {
-            client
-                .subscribe(
-                    cn.to_owned() + "/" + i.1.name() + "/#",
-                    rumqttc::QoS::ExactlyOnce,
-                )
-                .await?;
-        }
-
-        Ok(())
-    }
-
     /// build Astarte client, call this before `connect`
-    pub async fn build(&mut self) -> Result<(), AstarteBuilderError> {
+    pub async fn build(&mut self) -> Result<AstarteSdk, AstarteBuilderError> {
         let cn = format!("{}/{}", self.realm, self.device_id);
 
         if self.interfaces.is_empty() {
@@ -266,30 +236,13 @@ impl AstarteBuilder {
 
         let mqtt_opts = self.build_mqtt_opts(&certificate_pem, &broker_url, &private_key)?;
 
-        self.build_options = Some(BuildOptions {
+        let build_options = BuildOptions {
             private_key,
             csr,
             certificate_pem,
             broker_url,
             mqtt_opts,
-        });
-
-        Ok(())
-    }
-
-    /// Creates and connects an Astarte client
-    pub async fn connect(&mut self) -> Result<AstarteSdk, AstarteBuilderError> {
-        let cn = format!("{}/{}", self.realm, self.device_id);
-
-        let build_options = self
-            .build_options
-            .clone()
-            .ok_or_else(|| AstarteBuilderError::ConfigError("Missing or failed build".into()))?;
-
-        // TODO: make cap configurable
-        let (client, eventloop) = AsyncClient::new(build_options.mqtt_opts.clone(), 50);
-
-        self.subscribe(&client, &cn).await?;
+        };
 
         let device = AstarteSdk {
             realm: self.realm.to_owned(),
@@ -297,8 +250,7 @@ impl AstarteBuilder {
             credentials_secret: self.credentials_secret.to_owned(),
             pairing_url: self.pairing_url.to_owned(),
             build_options,
-            client,
-            eventloop: Arc::new(tokio::sync::Mutex::new(eventloop)),
+            transport: None,
             interfaces: Interfaces::new(self.interfaces.clone()),
             database: self.database.clone(),
         };
