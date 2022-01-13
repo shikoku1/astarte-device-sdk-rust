@@ -18,9 +18,11 @@
 
 use std::collections::HashMap;
 
+use log::debug;
+
 use crate::{interface::traits::Mapping, types::AstarteType, AstarteError, Interface};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Interfaces {
     pub interfaces: HashMap<String, Interface>,
 }
@@ -276,21 +278,51 @@ impl Interfaces {
 
         Ok(())
     }
+
+    /// Add an interface from a json file
+    pub fn add_interface_file(&mut self, file_path: &str) -> Result<(), AstarteError> {
+        let interface = Interface::from_file(file_path.as_ref())?;
+        let name = crate::interface::traits::Interface::name(&interface);
+        debug!("Added interface {}", name);
+        self.interfaces.insert(name.to_owned(), interface);
+        Ok(())
+    }
+
+    /// Add all json interface description inside a specified directory
+    pub fn add_interface_directory(
+        &mut self,
+        interfaces_directory: &str,
+    ) -> Result<(), AstarteError> {
+        let interface_files = std::fs::read_dir(std::path::Path::new(interfaces_directory))?;
+        let it = interface_files.filter_map(Result::ok).filter(|f| {
+            if let Some(ext) = f.path().extension() {
+                ext == "json"
+            } else {
+                false
+            }
+        });
+
+        for f in it {
+            self.add_interface_file(&f.path().to_string_lossy())?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod test {
     use std::{collections::HashMap, convert::TryInto, str::FromStr};
 
-    use crate::{
-        builder::AstarteOptions, interface::traits::Interface, types::AstarteType, AstarteSdk,
-    };
+    use crate::{interface::traits::Interface, types::AstarteType, AstarteSdk};
+
+    use super::Interfaces;
 
     #[test]
     fn test_individual() {
-        let mut options = AstarteOptions::new("test", "test", "test", "test");
-        options.interface_directory("examples/interfaces/").unwrap();
-        let ifa = super::Interfaces::new(options.interfaces);
+        let mut ifa = Interfaces::default();
+        ifa.add_interface_directory(&"examples/interfaces/".to_string())
+            .unwrap();
 
         let buf = AstarteSdk::serialize_individual(AstarteType::Boolean(true), None).unwrap();
 
@@ -339,9 +371,9 @@ mod test {
 
     #[test]
     fn test_object() {
-        let mut options = AstarteOptions::new("test", "test", "test", "test");
-        options.interface_directory("examples/interfaces/").unwrap();
-        let ifa = super::Interfaces::new(options.interfaces);
+        let mut ifa = Interfaces::default();
+        ifa.add_interface_directory(&"examples/interfaces/".to_string())
+            .unwrap();
 
         let mut obj: std::collections::HashMap<&str, AstarteType> =
             std::collections::HashMap::new();
@@ -425,9 +457,9 @@ mod test {
 
     #[test]
     fn test_individual_recv() {
-        let mut options = AstarteOptions::new("test", "test", "test", "test");
-        options.interface_directory("examples/interfaces/").unwrap();
-        let ifa = super::Interfaces::new(options.interfaces);
+        let mut ifa = Interfaces::default();
+        ifa.add_interface_directory(&"examples/interfaces/".to_string())
+            .unwrap();
 
         let boolean_buf =
             AstarteSdk::serialize_individual(AstarteType::Boolean(true), None).unwrap();
