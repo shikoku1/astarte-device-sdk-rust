@@ -1,0 +1,15 @@
+name: Create Astarte Cluster
+
+on:
+  push:
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests
+  pull_request:
+
+jobs:
+  create-cluster:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Astarte Cluster
+        uses: astarte-platform/astarte-cluster-action@v1
