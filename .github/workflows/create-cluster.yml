@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Create Astarte Cluster
+        id: astarte
         uses: astarte-platform/astarte-cluster-action@v1
       - name: test
-        run: echo {housekeeping_key}
+        run: echo ${{steps.astarte.outputs.housekeeping_key}}
