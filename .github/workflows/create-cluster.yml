@@ -14,4 +14,4 @@ jobs:
       - name: Create Astarte Cluster
         uses: astarte-platform/astarte-cluster-action@v1
       - name: test
-        run: echo $housekeeping_key
+        run: echo {housekeeping_key}
