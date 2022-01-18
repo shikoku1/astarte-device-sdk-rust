@@ -16,6 +16,6 @@ jobs:
         uses: astarte-platform/astarte-cluster-action@v1
       - name: test
         run: | 
-        echo "${{steps.astarte.outputs.housekeeping_key}}"
-        echo "${{steps.astarte.outputs.realm_key}}"
-        astartectl
+          echo "${{steps.astarte.outputs.housekeeping_key}}"
+          echo "${{steps.astarte.outputs.realm_key}}"
+          astartectl
