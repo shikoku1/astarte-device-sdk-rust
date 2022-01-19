@@ -17,8 +17,8 @@ jobs:
       - name: test
         run: | 
           echo "${{steps.astarte.outputs.housekeeping_key}}"
-          echo "${{steps.astarte.outputs.realm_key}}"
-          astartectl appengine devices list --realm-name "test" -k "${{steps.astarte.outputs.realm_key}}" --astarte-url "https://api.autotest.astarte-platform.org"
+          echo "${{steps.astarte.outputs.realm_key}}" > /tmp/realmkey
+          astartectl appengine devices list --realm-name "test" -k "/tmp/realmkey" --astarte-url "https://api.autotest.astarte-platform.org"
 
       - name: Checkout sources
         uses: actions/checkout@v2
