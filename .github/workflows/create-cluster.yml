@@ -17,6 +17,7 @@ jobs:
       - name: test
         run: | 
           echo "${{steps.astarte.outputs.housekeeping_key}}"
+          echo "${{steps.astarte.outputs.realm_key}}" | base64
           echo "${{steps.astarte.outputs.realm_key}}" > /tmp/realmkey.crt.pem
           astartectl appengine devices list --realm-name "test" -k "/tmp/realmkey.crt.pem" --astarte-url "https://api.autotest.astarte-platform.org"
 
