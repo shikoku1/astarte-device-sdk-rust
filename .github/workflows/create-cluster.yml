@@ -14,15 +14,15 @@ jobs:
       - name: Create Astarte Cluster
         id: astarte
         uses: astarte-platform/astarte-cluster-action@v1
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: ls
+        run: ls
       - name: test
         run: | 
           astartectl appengine devices list
           astartectl realm-management interfaces install $GITHUB_WORKSPACE/examples/interfaces/com.test.Everything.json
           astartectl realm-management interfaces ls
-      - name: Checkout sources
-        uses: actions/checkout@v2
-      - name: ls
-        run: ls
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
