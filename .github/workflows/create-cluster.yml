@@ -21,6 +21,8 @@ jobs:
           astartectl realm-management interfaces ls
       - name: Checkout sources
         uses: actions/checkout@v2
+      - name: ls
+        run: ls
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
