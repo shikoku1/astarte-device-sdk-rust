@@ -69,6 +69,8 @@ async fn main() {
             i += 11;
 
             std::thread::sleep(std::time::Duration::from_millis(1000));
+
+            break;
         }
     });
 

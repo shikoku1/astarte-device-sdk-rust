@@ -18,11 +18,19 @@ jobs:
         uses: actions/checkout@v2
       - name: ls
         run: ls
+      - name: env
+        run: env
       - name: test
         run: | 
           astartectl appengine devices list
           astartectl realm-management interfaces install $GITHUB_WORKSPACE/examples/interfaces/com.test.Everything.json
           astartectl realm-management interfaces ls
+      - name: Register device
+        run: |
+          DEVICE_ID=$(./astartectl utils device-id generate-random)
+          echo "E2E_DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
+          CREDENTIALS_SECRET=$(./astartectl pairing agent register $DEVICE_ID | grep "Credentials Secret is" | cut -d '"' -f 2)
+          echo "E2E_CREDENTIALS_SECRET=$CREDENTIALS_SECRET" >> $GITHUB_ENV
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -34,4 +42,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: run
-          args: --example simple
+          args: --example simple -- --credentials-secret $E2E_CREDENTIALS_SECRET --device-id $E2E_DEVICE_ID --pairing-url https://api.autotest.astarte-platform.org --realm test
