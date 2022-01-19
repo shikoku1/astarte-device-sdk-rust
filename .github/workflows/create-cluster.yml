@@ -27,9 +27,9 @@ jobs:
           astartectl realm-management interfaces ls
       - name: Register device
         run: |
-          DEVICE_ID=$(./astartectl utils device-id generate-random)
+          DEVICE_ID=$(astartectl utils device-id generate-random)
           echo "E2E_DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
-          CREDENTIALS_SECRET=$(./astartectl pairing agent register $DEVICE_ID | grep "Credentials Secret is" | cut -d '"' -f 2)
+          CREDENTIALS_SECRET=$(astartectl pairing agent register $DEVICE_ID | grep "Credentials Secret is" | cut -d '"' -f 2)
           echo "E2E_CREDENTIALS_SECRET=$CREDENTIALS_SECRET" >> $GITHUB_ENV
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
