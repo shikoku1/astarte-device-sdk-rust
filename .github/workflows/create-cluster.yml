@@ -37,7 +37,10 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-
+      - name: dbg
+        run: |
+          echo $E2E_CREDENTIALS_SECRET
+          echo $E2E_DEVICE_ID
       - name: Run test
         uses: actions-rs/cargo@v1
         with:
