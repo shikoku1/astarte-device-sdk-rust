@@ -45,4 +45,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: run
-          args: --example simple -- --credentials-secret $E2E_CREDENTIALS_SECRET --device-id $E2E_DEVICE_ID --pairing-url https://api.autotest.astarte-platform.org --realm test
+          args: --example simple -- --credentials-secret "$E2E_CREDENTIALS_SECRET" --device-id "$E2E_DEVICE_ID" --pairing-url https://api.autotest.astarte-platform.org/ --realm test
