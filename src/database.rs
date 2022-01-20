@@ -170,6 +170,13 @@ impl AstarteSqliteDatabase {
 
         sqlx::query("CREATE TABLE if not exists propcache (interface TEXT, path TEXT, value BLOB NOT NULL, interface_major INTEGER NOT NULL, PRIMARY KEY (interface, path))").execute(&conn).await?;
 
+        sqlx::query("PRAGMA journal_mode=WAL")
+            .execute(&conn)
+            .await?;
+        sqlx::query("PRAGMA busy_timeout=10000")
+            .execute(&conn)
+            .await?;
+
         Ok(AstarteSqliteDatabase { db_conn: conn })
     }
 }
