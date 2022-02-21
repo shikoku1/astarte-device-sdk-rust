@@ -72,7 +72,7 @@ pub enum AstarteError {
     DeserializationError,
 
     #[error("error converting from Bson to AstarteType")]
-    FromBsonError,
+    FromBsonError(String),
 
     #[error("type mismatch in bson array from astarte, something has gone very wrong here")]
     FromBsonArrayError,
@@ -605,7 +605,9 @@ impl AstarteSdk {
             let mapping = self
                 .interfaces
                 .get_mapping(interface_name, interface_path)
-                .ok_or_else(|| AstarteError::SendError("Mapping doesn't exist".into()))?;
+                .ok_or_else(|| {
+                    AstarteError::SendError(format!("Mapping {} doesn't exist", interface_path))
+                })?;
 
             if let crate::interface::Mapping::Properties(_) = mapping {
                 //if mapping is a property
@@ -836,5 +838,166 @@ mod test {
         let s = crate::utils::extract_set_properties(&bdata);
 
         assert!(s.join(";").as_bytes() == example);
+    }
+
+    #[test]
+    fn serialize_object() {
+        fn get_data() -> std::collections::HashMap<String, AstarteType> {
+            let alltypes: Vec<AstarteType> = vec![
+                AstarteType::Double(4.5),
+                (-4).into(),
+                true.into(),
+                45543543534_i64.into(),
+                "hello".into(),
+                b"hello".to_vec().into(),
+                chrono::TimeZone::timestamp(&chrono::Utc, 1627580808, 0).into(),
+                vec![1.2, 3.4, 5.6, 7.8].into(),
+                vec![1, 3, 5, 7].into(),
+                vec![true, false, true, true].into(),
+                vec![45543543534_i64, 45543543535_i64, 45543543536_i64].into(),
+                vec!["hello".to_owned(), "world".to_owned()].into(),
+                vec![b"hello".to_vec(), b"world".to_vec()].into(),
+                vec![
+                    chrono::TimeZone::timestamp(&chrono::Utc, 1627580808, 0),
+                    chrono::TimeZone::timestamp(&chrono::Utc, 1627580809, 0),
+                    chrono::TimeZone::timestamp(&chrono::Utc, 1627580810, 0),
+                ]
+                .into(),
+            ];
+
+            let allendpoints = vec![
+                "double",
+                "integer",
+                "boolean",
+                "longinteger",
+                "string",
+                "binaryblob",
+                "datetime",
+                "doublearray",
+                "integerarray",
+                "booleanarray",
+                "longintegerarray",
+                "stringarray",
+                "binaryblobarray",
+                "datetimearray",
+            ];
+
+            let allendpoints = allendpoints
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>();
+
+            let data = alltypes
+                .iter()
+                .cloned()
+                .zip(allendpoints.iter().cloned())
+                .collect::<Vec<(AstarteType, String)>>();
+
+            let mut data_map = std::collections::HashMap::new();
+
+            for i in &data {
+                data_map.insert(i.1.clone(), i.0.clone());
+            }
+
+            data_map
+        }
+
+        let data = get_data();
+
+        #[derive(serde::Serialize)]
+        struct Obj {
+            double: f64,
+            integer: i32,
+            boolean: bool,
+            longinteger: i64,
+            string: String,
+            binaryblob: Vec<u8>,
+            datetime: chrono::DateTime<chrono::Utc>,
+            doublearray: Vec<f64>,
+            integerarray: Vec<i32>,
+            booleanarray: Vec<bool>,
+            longintegerarray: Vec<i64>,
+            stringarray: Vec<String>,
+            binaryblobarray: Vec<Vec<u8>>,
+            datetimearray: Vec<chrono::DateTime<chrono::Utc>>,
+        }
+
+        /*
+                        AstarteType::Double(4.5),
+                (-4).into(),
+                true.into(),
+                45543543534_i64.into(),
+                "hello".into(),
+                b"hello".to_vec().into(),
+                chrono::TimeZone::timestamp(&chrono::Utc, 1627580808, 0).into(),
+                vec![1.2, 3.4, 5.6, 7.8].into(),
+                vec![1, 3, 5, 7].into(),
+                vec![true, false, true, true].into(),
+                vec![45543543534_i64, 45543543535_i64, 45543543536_i64].into(),
+                vec!["hello".to_owned(), "world".to_owned()].into(),
+                vec![b"hello".to_vec(), b"world".to_vec()].into(),
+                vec![
+                    chrono::TimeZone::timestamp(&chrono::Utc, 1627580808, 0),
+                    chrono::TimeZone::timestamp(&chrono::Utc, 1627580809, 0),
+                    chrono::TimeZone::timestamp(&chrono::Utc, 1627580810, 0),
+                ]
+                .into(),
+        */
+        let obj = Obj {
+            double: 4.5,
+            integer: -4,
+            boolean: true,
+            longinteger: 45543543534_i64,
+            string: "hello".into(),
+            binaryblob: b"hello".to_vec(),
+            datetime: chrono::TimeZone::timestamp(&chrono::Utc, 1627580808, 0),
+            doublearray: vec![1.2, 3.4, 5.6, 7.8],
+            integerarray: vec![1, 3, 5, 7],
+            booleanarray: vec![true, false, true, true],
+            longintegerarray: vec![45543543534_i64, 45543543535_i64, 45543543536_i64],
+            stringarray: vec!["hello".to_owned(), "world".to_owned()],
+            binaryblobarray: vec![b"hello".to_vec(), b"world".to_vec()],
+            datetimearray: vec![
+                chrono::TimeZone::timestamp(&chrono::Utc, 1627580808, 0),
+                chrono::TimeZone::timestamp(&chrono::Utc, 1627580809, 0),
+                chrono::TimeZone::timestamp(&chrono::Utc, 1627580810, 0),
+            ],
+        };
+
+        #[derive(serde::Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Geolocation {
+            latitude: f64,
+            longitude: f64,
+            altitude: f64,
+            accuracy: f64,
+            altitude_accuracy: f64,
+            heading: f64,
+            speed: f64,
+        }
+
+        // object aggregation
+        let data = Geolocation {
+            latitude: 1.34,
+            longitude: 2.34,
+            altitude: 3.34,
+            accuracy: 4.34,
+            altitude_accuracy: 5.34,
+            heading: 6.34,
+            speed: 7.34,
+        };
+
+        let mut data: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+        data.insert("latitude".into(), 1.34);
+        data.insert("longitude".into(), 2.34);
+        data.insert("altitude".into(), 3.34);
+        data.insert("accuracy".into(), 4.34);
+        data.insert("altitudeAccuracy".into(), 5.34);
+        data.insert("heading".into(), 6.34);
+        data.insert("speed".into(), 7.34);
+
+        let buf = AstarteSdk::serialize_object(data, None).unwrap();
+
+        let data2 = AstarteSdk::deserialize(&buf).unwrap();
     }
 }
